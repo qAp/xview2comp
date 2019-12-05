@@ -55,6 +55,25 @@ def polys2mask(ps:list, sz=(1024, 1024)):
 def save_mask(m, fn): PIL.Image.fromarray(m).save(fn)
 def load_mask(fn): return np.array(PIL.Image.open(fn))
 
+def feats2polys(xs:list):
+    ''' Transform list of feature dicts, if any, to list of polygons. '''
+    if xs: return list(features2df(xs).geometry)
+    return []
+
+def img2mask(o:Path):
+    ''' Transform image path to binary mask. '''
+    lname = img2label_fpath(o)
+    feats = json.load(open(lname))['features']['xy']
+    polys = feats2polys(feats)
+    return polys2mask(polys)
+
+def img2bmask_fpath(n): return Path(str(n).replace('images/', 'binarymasks/'))
+
+def generate_pre_binarymasks(fnames):
+    for n in fnames:
+        mask, fpath = img2mask(n), img2bmask_fpath(n)
+        PIL.Image.fromarray(mask).save(fpath)
+
 def compose(x, funcs, *args, order_key='_order', **kwargs):
     key = lambda o: getattr(o, order_key, 0)
     for f in sorted(listify(funcs), key=key): x = f(x, **kwargs)
@@ -115,8 +134,8 @@ class SplitData():
     def __repr__(self):
         return f'{self.__class__.__name__}\nTrain: {self.train}\nValid: {self.valid}\n'
 
-def _label_by_func(il, f, listtype=ItemList):
-    return listtype([f(o) for o in il.items], path=il.path, tfms=il.tfms)
+def _label_by_func(il, f, listtype=ItemList, tfms=None, **kwargs):
+    return listtype([f(o) for o in il.items], path=il.path, tfms=tfms, **kwargs)
 
 class LabeledData():
     def __init__(self, x, y): self.x, self.y = x, y
@@ -133,28 +152,25 @@ def label_by_func(sd, f, **kwargs):
     return SplitData(train, valid)
 
 def to_byte_tensor(o):
-    _order = 20
     res = torch.ByteTensor(torch.ByteStorage.from_buffer(o.tobytes()))
     w, h = o.size
     return res.view(h, w, -1).permute(2, 0, 1)
+to_byte_tensor._order = 20
 
 def to_float_tensor(o):
-    _order = 30
     return o.float().div_(255.)
+to_float_tensor._order = 30
 
 class ResizeFixed(Transform):
     _order = 10
-    def __init__(self, size):
+    def __init__(self, size, resample=0):
         if isinstance(size, int): size = (size, size)
-        self.size = size
-    def __call__(self, o):
-        if isinstance(o, PIL.Image.Image):
-            return o.resize(self.size, PIL.Image.BILINEAR)
-        if isinstance(o, PIL.PngImagePlugin.PngImageFile):
-            return o.resize(self.size, PIL.Image.NEAREST)
-        return o
+        self.size, self.resample = size, resample
 
-def show_sample(img, mas, figsize=(3, 3)):
+    def __call__(self, o):
+        return o.resize(self.size, self.resample)
+
+def show_sample(img, mas, figsize=(6, 6)):
     _, ax = plt.subplots(figsize=figsize)
     ax.axis('off')
     ax.imshow(img.permute(1, 2, 0))
