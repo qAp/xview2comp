@@ -157,9 +157,13 @@ def to_byte_tensor(o):
     return res.view(h, w, -1).permute(2, 0, 1)
 to_byte_tensor._order = 20
 
-def to_float_tensor(o):
-    return o.float().div_(255.)
+def to_float_tensor(o): return o.float()
 to_float_tensor._order = 30
+
+class Normalize():
+    _order = 40
+    def __init__(self, factor): self.factor = factor
+    def __call__(self, o): return self.factor * o
 
 class ResizeFixed(Transform):
     _order = 10
@@ -170,11 +174,13 @@ class ResizeFixed(Transform):
     def __call__(self, o):
         return o.resize(self.size, self.resample)
 
-def show_sample(img, mas, figsize=(6, 6)):
+def show_sample(img, mas=None, figsize=(4, 4), mas_color=None):
     _, ax = plt.subplots(figsize=figsize)
     ax.axis('off')
     ax.imshow(img.permute(1, 2, 0))
-    ax.imshow(tensor([255, 30, 0.]) * mas.permute(1, 2, 0), alpha=.3)
+    if mas is not None:
+        if not mas_color: mas_color = mas.new([255, 30, 0]) / 255
+        ax.imshow(mas_color * mas.permute(1, 2, 0), alpha=.3)
 
 class DataBunch():
     def __init__(self, train_dl, valid_dl):
