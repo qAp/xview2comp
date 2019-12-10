@@ -36,7 +36,7 @@ def features2df(fs:list):
     '''Convert all features' dict to series, return dataframe.'''
     assert len(fs) > 0
     df = pd.DataFrame()
-    for f in fs: df = df.append(feature2srs(f), ignore_index=True)
+    for f in fs: df = df.append(dict2srs_feature(f), ignore_index=True)
     df['geometry'] = df.wkt.apply(shapely.wkt.loads)
     df.drop('wkt', axis=1, inplace=True)
     return df
