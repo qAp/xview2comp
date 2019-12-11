@@ -5,7 +5,7 @@
 # file to edit: dev_nb/01_load_data.ipynb
 
 import sys
-sys.path.append('/Users/jack/git_repos/course-v3/nbs/dl2')
+sys.path.append('../course-v3/nbs/dl2')
 from exp.nb_12a import *
 
 import os, json, sys
