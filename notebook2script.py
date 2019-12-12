@@ -65,8 +65,8 @@ def notebook2scriptSingle(fname):
     for cell in code_cells: module += ''.join(cell['source'][1:]) + '\n\n'
     # remove trailing spaces
     module = re.sub(r' +$', '', module, flags=re.MULTILINE)
-    if not (fname.parent/'xview2compgcp').exists(): (fname.parent/'xview2compgcp').mkdir()
-    output_path = fname.parent/'xview2compgcp'/fname_out
+    if not (fname.parent/'xview2comp').exists(): (fname.parent/'xview2comp').mkdir()
+    output_path = fname.parent/'xview2comp'/fname_out
     open(output_path,'w').write(module[:-2])
     print(f"Converted {fname} to {output_path}")
 
