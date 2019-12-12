@@ -74,4 +74,4 @@ def show_sample(*imgs, mas=None, figsize=(4, 4), alpha=.4):
         ax.axis('off')
         ax.imshow(img.permute(1, 2, 0))
         if mas is not None:
-            ax.imshow(mas[0], cmap=CMAP, alpha=alpha)
+            ax.imshow(mas[0], cmap=CMAP, alpha=alpha, vmin=0, vmax=4)
