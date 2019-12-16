@@ -34,11 +34,8 @@ def dict2srs_feature(o:dict):
 
 def features2df(fs:list):
     '''Convert all features' dict to series, return dataframe.'''
-    assert len(fs) > 0
     df = pd.DataFrame()
     for f in fs: df = df.append(dict2srs_feature(f), ignore_index=True)
-    df['geometry'] = df.wkt.apply(shapely.wkt.loads)
-    df.drop('wkt', axis=1, inplace=True)
     return df
 
 def polys2mask(ps:list, sz=(1024, 1024)):
@@ -57,7 +54,7 @@ def load_mask(fn): return np.array(PIL.Image.open(fn))
 
 def feats2polys(xs:list):
     ''' Transform list of feature dicts, if any, to list of polygons. '''
-    if xs: return list(features2df(xs).geometry)
+    if xs: return list(features2df(xs).wkt.apply(shapely.wkt.loads))
     return []
 
 def img2mask(o:Path):
