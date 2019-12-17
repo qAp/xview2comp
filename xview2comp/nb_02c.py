@@ -8,6 +8,7 @@ from xview2comp.nb_02b import *
 import imantics
 from simplification.cutil import simplify_coords_vwp
 from uuid import uuid4
+import tqdm
 
 def bmask2polys(mask):
     '''
@@ -33,7 +34,7 @@ def polys2bmask(polys, sz):
     cv2.fillPoly(mask, polys, (1,));
     return mask
 
-def crop_by_polygon(img:Image, polygon:np.ndarray, scale_pct=.5):
+def crop_by_polygon(img:Image, polygon:np.ndarray, scale_pct=.8):
     '''
     Crop image by polygon
     img: image in which polygon lies.
@@ -49,3 +50,42 @@ def crop_by_polygon(img:Image, polygon:np.ndarray, scale_pct=.5):
     xmin, xmax = max(xmin, 0), min(xmax, width)
     ymin, ymax = max(ymin, 0), min(ymax, height)
     return Image(img.data[:,ymin:ymax,xmin:xmax])
+
+def wkt2array(wkt:str):
+    '''
+    Convert well-known text representation string
+    to array of (x,y) coords
+    '''
+    poly = shapely.wkt.loads(wkt)
+    poly = shapely.geometry.mapping(poly)
+    poly = np.array(poly['coordinates'][0], dtype=np.int32)
+    return poly
+
+class DamageCategorize():
+    def __init__(self):
+        self.o2i = {'un-classified':0, 'no-damage':0,
+                    'minor-damage':1, 'major-damage':2, 'destroyed':3}
+    def __call__(self, o): return self.o2i[o]
+
+def generate_classification_train():
+    npreimgs = pre_img_fpaths(get_image_files(SOURCE/'images'))
+    nposimgs = [pre2post_fpath(n) for n in npreimgs]
+    nposlabs = [img2label_fpath(n) for n in nposimgs]
+
+    nposimgs = nposimgs[567:569]
+    nposlabs = nposlabs[567:569]
+
+    df = pd.DataFrame()
+    for nposimg, nposlab in tqdm.tqdm(zip(nposimgs, nposlabs)):
+        posimg = open_image(nposimg)
+        feats = load_features(nposlab)
+        df_polys = features2df(feats)
+        for _, r in df_polys.iterrows():
+            p = wkt2array(r.wkt)
+            img = crop_by_polygon(posimg, p)
+            fname = f'{r.uid}.png'
+            fpath = SOURCE/'classification_images'/fname
+            img.save(fpath)
+            srs = pd.Series({'uid':r.uid, 'damage':r.subtype})
+            df = df.append(srs, ignore_index=True)
+    return df
