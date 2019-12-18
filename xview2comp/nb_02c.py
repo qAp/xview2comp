@@ -62,6 +62,13 @@ def wkt2array(wkt:str):
     return poly
 
 def generate_classification_train(nposimgs, nposlabs, path=None, csv=None):
+    '''
+    Generate polygon images and a .csv file listing them and their damage level.
+    nposimgs: list
+      list of image paths
+    nposlabs: lsit
+      list of json paths, corresponding to the paths in nposimgs.
+    '''
     assert len(nposimgs) == len(nposlabs)
     df = pd.DataFrame()
     for nposimg, nposlab in progress_bar(list(zip(nposimgs, nposlabs))):
