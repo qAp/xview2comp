@@ -61,31 +61,17 @@ def wkt2array(wkt:str):
     poly = np.array(poly['coordinates'][0], dtype=np.int32)
     return poly
 
-class DamageCategorize():
-    def __init__(self):
-        self.o2i = {'un-classified':0, 'no-damage':0,
-                    'minor-damage':1, 'major-damage':2, 'destroyed':3}
-    def __call__(self, o): return self.o2i[o]
-
-def generate_classification_train():
-    npreimgs = pre_img_fpaths(get_image_files(SOURCE/'images'))
-    nposimgs = [pre2post_fpath(n) for n in npreimgs]
-    nposlabs = [img2label_fpath(n) for n in nposimgs]
-
-    nposimgs = nposimgs[567:569]
-    nposlabs = nposlabs[567:569]
-
+def generate_classification_train(nposimgs, nposlabs, path=None, csv=None):
+    assert len(nposimgs) == len(nposlabs)
     df = pd.DataFrame()
-    for nposimg, nposlab in tqdm.tqdm(zip(nposimgs, nposlabs)):
+    for nposimg, nposlab in progress_bar(list(zip(nposimgs, nposlabs))):
         posimg = open_image(nposimg)
         feats = load_features(nposlab)
         df_polys = features2df(feats)
         for _, r in df_polys.iterrows():
             p = wkt2array(r.wkt)
             img = crop_by_polygon(posimg, p)
-            fname = f'{r.uid}.png'
-            fpath = SOURCE/'classification_images'/fname
-            img.save(fpath)
+            img.save(path/f'{r.uid}.png')
             srs = pd.Series({'uid':r.uid, 'damage':r.subtype})
             df = df.append(srs, ignore_index=True)
-    return df
+    df.to_csv(path/csv, index=False)
