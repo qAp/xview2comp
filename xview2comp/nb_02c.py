@@ -19,9 +19,12 @@ def bmask2polys(mask):
     '''
     sz = mask.shape[0]
     ps = imantics.Mask(mask).polygons()
+    ps = (p for p in ps if len(p) >= 3)
     ps = (p.reshape(-1, 2) for p in ps)
     ps = (simplify_coords_vwp(p, .3).astype(np.int32) for p in ps)
-    return sz, np.array([np.concatenate((p, p[0][None,...])) for p in ps])
+    ps = (p for p in ps if len(p) > 2)
+    ps = (np.concatenate((p, p[0][None,...])) for p in ps)
+    return sz, np.array(list(ps))
 
 def polys2bmask(polys, sz):
     '''
