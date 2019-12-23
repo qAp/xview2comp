@@ -69,8 +69,12 @@ def generate_classification_train(nposimgs, nposlabs, path=None, csv=None):
     Generate polygon images and a .csv file listing them and their damage level.
     nposimgs: list
       list of image paths
-    nposlabs: lsit
+    nposlabs: list
       list of json paths, corresponding to the paths in nposimgs.
+    path: Path/str
+      Path to save image files
+    csv: Path/str
+      Path to save csv file
     '''
     assert len(nposimgs) == len(nposlabs)
     df = pd.DataFrame()
@@ -84,4 +88,4 @@ def generate_classification_train(nposimgs, nposlabs, path=None, csv=None):
             img.save(path/f'{r.uid}.png')
             srs = pd.Series({'uid':r.uid, 'damage':r.subtype})
             df = df.append(srs, ignore_index=True)
-    df.to_csv(path/csv, index=False)
+    df.to_csv(csv, index=False)
