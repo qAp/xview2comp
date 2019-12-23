@@ -7,3 +7,39 @@
 from xview2comp.nb_03 import *
 
 def generate_uid_polys(polys): return np.array([str(uuid4()) for _ in polys])
+
+def polyimgs2disk(img, polys, path=None):
+    if path is None: path = Path('tmp_polyimgs')
+    shutil.rmtree(path, ignore_errors=True); os.makedirs(path, exist_ok=True)
+    if len(polys) == 0: return path, []
+    uids = generate_uid_polys(polys)
+    for uid, p in zip(uids, polys): crop_by_polygon(img, p).save(path/f'{uid}.png')
+    return path, uids
+
+def assess_damage_polyimgs(polyimgs, path='./', file='./damage_classifier.pkl'):
+    if len(polyimgs.items) == 0: return [] # Need `.items` because `len(ImageList)` is 1 for empty list.
+    damglearn = load_learner(path, file, test=polyimgs)
+    pred_damg, _ = damglearn.get_preds(ds_type=DatasetType.Test)
+    return [damglearn.data.classes[o] for o in pred_damg.argmax(dim=1)]
+
+def damgpolys2damgmask(polys, damgs, sz=1024):
+    assert len(polys) == len(damgs)
+    if isinstance(sz, int): sz = (sz, sz)
+    mask = np.zeros(sz, dtype=np.uint8)
+    if len(polys) > 0:
+        for damg, poly in zip(damgs, polys):
+            cv2.fillPoly(mask, poly[None,...], (DAMG_OTOI[damg]))
+    return ImageSegment(tensor(mask[None,...]))
+
+def infer_sample(path_preimg, path_posimg, seglearn, path_damglearn='./damage_classifier.pkl'):
+    img = open_image(path_preimg)
+    y_mask, _, _ = seglearn.predict(img)
+    _, polys = bmask2polys(y_mask.data[0].numpy())
+    img = open_image(path_posimg)
+    path, uids = polyimgs2disk(img, polys, path=Path('tmp_polyimgs'))
+    polyimgs = ImageList([path/f'{uid}.png' for uid in uids])
+    damgs = assess_damage_polyimgs(polyimgs, file=path_damglearn)
+    damgmask = damgpolys2damgmask(polys, damgs, sz=img.shape[1:])
+    return damgmask
+
+def get_imgid(imgname): return imgname.stem.split('_')[-1]
