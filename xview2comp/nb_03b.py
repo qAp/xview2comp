@@ -16,11 +16,13 @@ def polyimgs2disk(img, polys, path=None):
     for uid, p in zip(uids, polys): crop_by_polygon(img, p).save(path/f'{uid}.png')
     return path, uids
 
-def assess_damage_polyimgs(polyimgs, path='./', file='./damage_classifier.pkl'):
+def assess_damage_polyimgs(polyimgs, path='./', file='damg_sz299_bs32_resnet50_mixup_stage2.pkl'):
     if len(polyimgs.items) == 0: return [] # Need `.items` because `len(ImageList)` is 1 for empty list.
     damglearn = load_learner(path, file, test=polyimgs)
     pred_damg, _ = damglearn.get_preds(ds_type=DatasetType.Test)
     return [damglearn.data.classes[o] for o in pred_damg.argmax(dim=1)]
+
+DAMG_OTOI = {'nun':1, 'minor':2, 'major':3, 'destroyed':4}
 
 def damgpolys2damgmask(polys, damgs, sz=1024):
     assert len(polys) == len(damgs)
@@ -31,7 +33,7 @@ def damgpolys2damgmask(polys, damgs, sz=1024):
             cv2.fillPoly(mask, poly[None,...], (DAMG_OTOI[damg]))
     return ImageSegment(tensor(mask[None,...]))
 
-def infer_sample(path_preimg, path_posimg, seglearn, path_damglearn='./damage_classifier.pkl'):
+def infer_sample(path_preimg, path_posimg, seglearn, path_damglearn):
     img = open_image(path_preimg)
     y_mask, _, _ = seglearn.predict(img)
     _, polys = bmask2polys(y_mask.data[0].numpy())
