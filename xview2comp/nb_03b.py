@@ -16,9 +16,9 @@ def polyimgs2disk(img, polys, path=None):
     for uid, p in zip(uids, polys): crop_by_polygon(img, p).save(path/f'{uid}.png')
     return path, uids
 
-def assess_damage_polyimgs(polyimgs, path='./', file='damg_sz299_bs32_resnet50_mixup_stage2.pkl'):
+def assess_damage_polyimgs(polyimgs, path='./', file='stage2_last_model_damg_nsample90000_sz128_bs32_resnet50_tfms_mixup_labsmooth.pkl'):
     if len(polyimgs.items) == 0: return [] # Need `.items` because `len(ImageList)` is 1 for empty list.
-    damglearn = load_learner(path, file, test=polyimgs)
+    damglearn = load_learner(path, file, test=polyimgs).to_fp32()
     pred_damg, _ = damglearn.get_preds(ds_type=DatasetType.Test)
     return [damglearn.data.classes[o] for o in pred_damg.argmax(dim=1)]
 
