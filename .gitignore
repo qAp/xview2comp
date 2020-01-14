@@ -1,4 +1,5 @@
-
+building_detector.pkl
+damage_classifier.pkl
 *.py~
 .ipynb_checkpoints/
 data/
